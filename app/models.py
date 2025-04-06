@@ -1,10 +1,36 @@
-from sqlalchemy import Column, Integer, String, Float
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, Integer, String, Float, Table, MetaData, ForeignKey, func, text
+from sqlalchemy.orm import Mapped, mapped_column
+from database import Base
+import enum
+import datetime
+from typing import Annotated
 
-Base = declarative_base()
 
-class Item(Base):
-    __tablename__ = "items"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
+intpk = Annotated[int, mapped_column(primary_key=True)]
+
+
+class WorkersOrm(Base):
+    __tablename__ = "workers" 
+
+    id: Mapped[intpk]
+    username: Mapped[str]
+
+class Workload(enum.Enum):
+     parttime = "parttime"
+     fulltime = "fulltaime"
+
+
+class ResumeOrm(Base):
+    __tablename__ = "resume"
+
+    id: Mapped[intpk]
+    title: Mapped[str]
+    compensation: Mapped[int | None]
+    workload: Mapped[Workload]
+    worker_id: Mapped[int] = mapped_column(ForeignKey("workers.id", ondelete="CASCADE"))
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
+    updated_at: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"), onupdate=datetime.datetime.utcnow())
+
+
+
+metadata_obj = MetaData()

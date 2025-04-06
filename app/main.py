@@ -1,8 +1,11 @@
-from fastapi import FastAPI
+import os
+import sys
+sys.path.insert(1, os.path.join(sys.path[0], '..'))
 
-app = FastAPI()
+from orm import SyncOrm
 
+SyncOrm.create_tables()
+SyncOrm.insert_workers()
+SyncOrm.select_workers()
+SyncOrm.update_workers()
 
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Online Store API!"}
