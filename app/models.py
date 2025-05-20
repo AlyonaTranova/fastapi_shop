@@ -1,36 +1,27 @@
-from sqlalchemy import Column, Integer, String, Float, Table, MetaData, ForeignKey, func, text
-from sqlalchemy.orm import Mapped, mapped_column
-from database import Base
-import enum
-import datetime
-from typing import Annotated
+from sqlalchemy import Column, Integer, String, Float, Boolean, ForeignKey
+from .database import Base
+from sqlalchemy.orm import relationship
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True)
+    email = Column(String(100), unique=True)
+    hashed_password = Column(String(100))
+    is_active = Column(Boolean, default=True)
 
-intpk = Annotated[int, mapped_column(primary_key=True)]
+class Book(Base):
+    __tablename__ = "books"
+    id = Column(Integer, primary_key=True)
+    title = Column(String(100))
+    author = Column(String(100))
+    price = Column(Float)
 
+class Cart(Base):
+    __tablename__ = "carts"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    book_id = Column(Integer, ForeignKey("books.id"))
+    quantity = Column(Integer, default=1)
 
-class WorkersOrm(Base):
-    __tablename__ = "workers" 
-
-    id: Mapped[intpk]
-    username: Mapped[str]
-
-class Workload(enum.Enum):
-     parttime = "parttime"
-     fulltime = "fulltaime"
-
-
-class ResumeOrm(Base):
-    __tablename__ = "resume"
-
-    id: Mapped[intpk]
-    title: Mapped[str]
-    compensation: Mapped[int | None]
-    workload: Mapped[Workload]
-    worker_id: Mapped[int] = mapped_column(ForeignKey("workers.id", ondelete="CASCADE"))
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"))
-    updated_at: Mapped[datetime.datetime] = mapped_column(server_default=text("TIMEZONE('utc', now())"), onupdate=datetime.datetime.utcnow())
-
-
-
-metadata_obj = MetaData()
+    user = relationship("User")
+    book = relationship("Book")

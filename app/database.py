@@ -1,24 +1,20 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import Session, sessionmaker, DeclarativeBase
-from sqlalchemy import URL, create_engine, text
-from config import settings
-import asyncio
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+import os
+from dotenv import load_dotenv
 
-sync_engine = create_engine(
-    url=settings.DATABASE_URL_psycopg, 
-    echo=True)
-async_engine = create_async_engine(
-    url=settings.DATABASE_URL_asyncpg, 
-    echo=False)
+load_dotenv()
 
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-# def create_tables():
-#    metadata_obj.drop_all(sync_engine)
-#    metadata_obj.create_all(sync_engine)    
+engine = create_engine(DATABASE_URL)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
 
-session_factory = sessionmaker(sync_engine)
-async_session_factory = async_sessionmaker(async_engine)
-
-class Base(DeclarativeBase):
-    pass
-
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
