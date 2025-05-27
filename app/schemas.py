@@ -1,17 +1,8 @@
-from pydantic import BaseModel, EmailStr, ConfigDict, field_serializer
-import datetime
-from pydantic import GetCoreSchemaHandler
-from pydantic_core import core_schema
-from datetime import datetime
-from typing import Any, Optional
+from pydantic import BaseModel, ConfigDict, EmailStr, field_serializer, field_validator
+from datetime import datetime, timedelta
+from typing import Optional
 
-class DateTime(datetime):
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> core_schema.CoreSchema:
-        return core_schema.datetime_schema()
-
+# Базовые модели
 class UserBase(BaseModel):
     email: EmailStr
 
@@ -21,27 +12,6 @@ class UserCreate(UserBase):
 class User(UserBase):
     id: int
     is_active: bool
-
-    model_config = ConfigDict(
-        from_attributes=True,  # Ранее orm_mode=True
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-
-class BookBase(BaseModel):
-    title: str
-    author: str
-    price: float
-
-class BookCreate(BookBase):
-    description: Optional[str] = None
-    stock: Optional[int] = 0
-
-class Book(BookBase):
-    id: int
-    description: Optional[str] = None
-    stock: int
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -50,6 +20,35 @@ class Book(BookBase):
     def serialize_dt(self, dt: datetime, _info):
         return dt.isoformat()
 
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+class TokenData(BaseModel):
+    email: Optional[str] = None
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class BookBase(BaseModel):
+    title: str
+    author: str
+    price: float
+
+class BookCreate(BookBase):
+    stock: int = 0
+
+class Book(BookBase):
+    id: int
+    stock: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+    @field_serializer('created_at')
+    def serialize_dt(self, dt: datetime, _info):
+        return dt.isoformat()
 
 class CartBase(BaseModel):
     book_id: int
@@ -61,50 +60,21 @@ class CartCreate(CartBase):
 class Cart(CartBase):
     id: int
     user_id: int
-
-    model_config = ConfigDict(
-        from_attributes=True,
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
-
-
-class OrderBase(BaseModel):
-    user_id: int
-    total: float
-    status: str = "created"
-
-class OrderCreate(OrderBase):
-    pass
-
-class Order(OrderBase):
-    id: int
     created_at: datetime
 
-    # Новый стиль конфигурации Pydantic v2
-    model_config = ConfigDict(
-        from_attributes=True,  # Аналог старого orm_mode=True
-        json_encoders={
-            datetime: lambda v: v.isoformat()
-        }
-    )
+    model_config = ConfigDict(from_attributes=True)
 
-    # Сериализатор для datetime (альтернатива json_encoders)
     @field_serializer('created_at')
     def serialize_dt(self, dt: datetime, _info):
         return dt.isoformat()
 
-class OrderItemBase(BaseModel):
+class CartCreate(BaseModel):
     book_id: int
-    quantity: int
-    price: float
+    quantity: int = 1
+    user_id: int
 
-class OrderItemCreate(OrderItemBase):
-    pass
-
-class OrderItem(OrderItemBase):
-    id: int
-    order_id: int
-
-    model_config = ConfigDict(from_attributes=True)
+    @field_validator('quantity')
+    def validate_quantity(cls, v):
+        if v < 1:
+            raise ValueError("Quantity must be at least 1")
+        return v

@@ -1,100 +1,29 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, field_serializer, GetCoreSchemaHandler
-from pydantic_core import core_schema
 from datetime import datetime
-from typing import Any, Optional
+from sqlalchemy import Column, Integer, String, Float, Boolean, DateTime, ForeignKey
+from .database import Base
 
-# Кастомный тип DateTime для обработки datetime
-class DateTime(datetime):
-    @classmethod
-    def __get_pydantic_core_schema__(
-        cls, source_type: Any, handler: GetCoreSchemaHandler
-    ) -> core_schema.CoreSchema:
-        return core_schema.datetime_schema()
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String(100), unique=True, index=True)
+    hashed_password = Column(String(100))
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# Хелперы для конвертации
-def convert_to_datetime(dt: datetime) -> DateTime:
-    return DateTime(
-        dt.year, dt.month, dt.day,
-        dt.hour, dt.minute, dt.second,
-        dt.microsecond, dt.tzinfo
-    )
+class Book(Base):
+    __tablename__ = "books"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String(100), nullable=False)
+    author = Column(String(100), nullable=False)
+    price = Column(Float, nullable=False)
+    stock = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
-# User Models
-class UserBase(BaseModel):
-    email: EmailStr
+class Cart(Base):
+    __tablename__ = "carts"
 
-class UserCreate(UserBase):
-    password: str
-
-class User(UserBase):
-    id: int
-    is_active: bool
-    created_at: DateTime
-    updated_at: DateTime
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_serializer('created_at', 'updated_at')
-    def serialize_dt(self, dt: DateTime, _info):
-        return dt.isoformat()
-
-# Book Models
-class BookBase(BaseModel):
-    title: str
-    author: str
-    price: float
-
-class BookCreate(BookBase):
-    description: Optional[str] = None
-    stock: int = 0
-
-class Book(BookBase):
-    id: int
-    description: Optional[str] = None
-    stock: int
-    created_at: DateTime
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_serializer('created_at')
-    def serialize_dt(self, dt: DateTime, _info):
-        return dt.isoformat()
-
-# Cart Models
-class CartBase(BaseModel):
-    book_id: int
-    quantity: int = 1
-
-class CartCreate(CartBase):
-    pass
-
-class Cart(CartBase):
-    id: int
-    user_id: int
-    created_at: DateTime
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_serializer('created_at')
-    def serialize_dt(self, dt: DateTime, _info):
-        return dt.isoformat()
-
-# Order Models
-class OrderBase(BaseModel):
-    total: float
-    status: str = "created"
-
-class OrderCreate(OrderBase):
-    shipping_address: str
-    payment_method: str
-
-class Order(OrderBase):
-    id: int
-    user_id: int
-    created_at: DateTime
-
-    model_config = ConfigDict(from_attributes=True)
-
-    @field_serializer('created_at')
-    def serialize_dt(self, dt: DateTime, _info):
-        return dt.isoformat()
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    book_id = Column(Integer, ForeignKey("books.id", ondelete="CASCADE"), nullable=False)
+    quantity = Column(Integer, default=1)
+    created_at = Column(DateTime, default=datetime.utcnow)
