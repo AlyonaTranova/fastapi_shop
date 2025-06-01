@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from . import schemas, crud
 from .database import get_db
-from .security import get_current_user
+from .core.security import get_current_user
 
 router = APIRouter(prefix="/orders", tags=["orders"])
 

@@ -1,8 +1,7 @@
-from pydantic import BaseModel, ConfigDict, EmailStr, field_serializer, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_serializer, field_validator, validator
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import List, Optional
 
-# Базовые модели
 class UserBase(BaseModel):
     email: EmailStr
 
@@ -78,3 +77,52 @@ class CartCreate(BaseModel):
         if v < 1:
             raise ValueError("Quantity must be at least 1")
         return v
+
+class CartItemBase(BaseModel):
+    book_id: int = Field(..., gt=0, description="ID книги должен быть положительным числом")
+    quantity: int = Field(1, gt=0, le=100, description="Количество должно быть от 1 до 100")
+
+    @validator('quantity')
+    def validate_quantity(cls, v):
+        if v < 1:
+            raise ValueError("Количество не может быть меньше 1")
+        return v
+
+class CartItemCreate(CartItemBase):
+    pass
+
+class CartItem(CartItemBase):
+    id: int
+    user_id: int
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OrderBase(BaseModel):
+    total: float
+    status: str = "created"
+
+class OrderCreate(OrderBase):
+    pass
+
+class Order(OrderBase):
+    id: int
+    user_id: int
+    created_at: datetime
+    items: List["OrderItem"] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+class OrderItemBase(BaseModel):
+    book_id: int
+    quantity: int
+    price: float
+
+class OrderItemCreate(OrderItemBase):
+    pass
+
+class OrderItem(OrderItemBase):
+    id: int
+    order_id: int
+
+    model_config = ConfigDict(from_attributes=True)
